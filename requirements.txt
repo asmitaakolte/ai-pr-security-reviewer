@@ -1,0 +1,5 @@
+# INTENTIONALLY OUTDATED versions with known CVEs, so Trivy reports something.
+# Do not use these versions in real projects.
+flask==0.12.2
+requests==2.19.1
+PyYAML==5.1

@@ -1,0 +1,59 @@
+name: AI PR Security Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+# Least privilege: only what the reviewer needs.
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  ai-security-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # SonarQube needs full git history for accurate new-code detection
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install tools
+        run: pip install --upgrade google-genai requests bandit
+
+      # --- Python static analysis (local JSON the AI will read) ---
+      - name: Bandit SAST scan
+        run: bandit -r sample-app -f json -o bandit-results.json || true
+
+      # --- Dependency / known-vulnerability scan (local JSON the AI will read) ---
+      - name: Trivy dependency & vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: json
+          output: trivy-results.json
+        continue-on-error: true
+
+      # --- SonarQube Cloud analysis (dashboard + quality gate + PR decoration) ---
+      # Requires: a project set up on SonarQube Cloud, sonar-project.properties filled in,
+      # and a SONAR_TOKEN repo secret. In your SonarQube Cloud project settings, turn OFF
+      # "Automatic Analysis" (Administration > Analysis Method) or this CI scan will error.
+      - name: SonarQube Cloud scan
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        continue-on-error: true
+
+      # --- AI review comment (reads Bandit + Trivy JSON, maps to SOX / MiFID II / Basel III) ---
+      - name: AI review with compliance mapping
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/review.py
