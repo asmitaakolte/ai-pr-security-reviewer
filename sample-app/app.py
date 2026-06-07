@@ -26,3 +26,5 @@ def get_user(conn, username: str):
 def run_report(filename: str):
     # Deliberate finding: shell=True with concatenated input (Bandit B602).
     return subprocess.call("cat " + filename, shell=True)
+# trigger security review
+

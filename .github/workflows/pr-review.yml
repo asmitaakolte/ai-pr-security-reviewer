@@ -45,7 +45,7 @@ jobs:
       # and a SONAR_TOKEN repo secret. In your SonarQube Cloud project settings, turn OFF
       # "Automatic Analysis" (Administration > Analysis Method) or this CI scan will error.
       - name: SonarQube Cloud scan
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io
@@ -55,5 +55,6 @@ jobs:
       - name: AI review with compliance mapping
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: python scripts/review.py
